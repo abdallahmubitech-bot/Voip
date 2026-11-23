@@ -392,6 +392,11 @@ class CallBloc extends Bloc<CallEvent, CallState> {
       return;
     }
     await _startAudio(activeSession, emit);
+    if (event.speakerphone) {
+      // Route to the loudspeaker once the audio plane is up, so the first
+      // inbound frame is already played on the right output.
+      add(const CallLoudspeakerToggled(enabled: true));
+    }
   }
 
   Future<void> _onRejected(

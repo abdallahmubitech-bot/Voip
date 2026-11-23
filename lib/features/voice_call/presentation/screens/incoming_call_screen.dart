@@ -54,6 +54,16 @@ class IncomingCallScreen extends StatelessWidget {
                         context.read<CallBloc>().add(const CallRejected()),
                   ),
                   RoundCallButton(
+                    key: const Key('accept-speaker-button'),
+                    icon: Icons.volume_up,
+                    background: AppTheme.accept,
+                    label: 'Speaker',
+                    semanticLabel: 'Accept call on the loudspeaker',
+                    onPressed: () => context
+                        .read<CallBloc>()
+                        .add(const CallAnswered(speakerphone: true)),
+                  ),
+                  RoundCallButton(
                     key: const Key('accept-button'),
                     icon: Icons.call,
                     background: AppTheme.accept,
@@ -63,6 +73,15 @@ class IncomingCallScreen extends StatelessWidget {
                         context.read<CallBloc>().add(const CallAnswered()),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Accept = earpiece (only you hear it)\n'
+                'Speaker = loudspeaker (everyone nearby hears it)',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
               const SizedBox(height: 24),
             ],

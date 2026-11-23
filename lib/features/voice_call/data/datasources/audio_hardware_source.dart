@@ -200,6 +200,13 @@ class AudioHardwareSource {
   /// How much the microphone is being ducked by the echo guard, 1.0 = untouched.
   double get echoGuardDucking => _processor.echoGuardDucking;
 
+  /// Reports that the playback stream was cut (jitter-buffer starvation or a
+  /// dropped frame) so the next block fades in instead of clicking.
+  void notePlaybackGap() => _processor.notePlaybackGap();
+
+  /// The noise floor the gate is currently tracking, in dBFS.
+  double get estimatedNoiseFloorDb => _processor.estimatedNoiseFloorDb;
+
   Future<void> initialize() async {
     if (_initialised || _disposed) {
       return;

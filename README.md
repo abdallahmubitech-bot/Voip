@@ -103,7 +103,7 @@ CallEnded     → terminal; CallEndReason drives the copy
                  ┌──────────────────────── capture path (25 fps) ───────────────────────┐
  mic ─► flutter_sound (PCM16/16 kHz/mono, toStream)   ← profile fallback chain
      ─► CaptureSilenceDetector all-zero buffers? → reopen with the next profile
-     ─► AudioProcessor         high-pass → noise gate → AGC → limiter (software DSP)
+     ─► AudioProcessor         high-pass → low-pass → adaptive gate → AGC → limiter
      ─► PcmChunker            arbitrary blocks → exactly 1280-byte frames
      ─► AudioPacketModel      [peerId][pcm]  (1-byte routing header)
      ─► WebSocketService      binary frame (dropped, never queued, while offline)
@@ -143,9 +143,9 @@ a firmware sketch for the ESP32 side. The **actual firmware** lives in
 | Flutter | 3.47.9 stable (Dart 3.13.7) |
 | Android SDK | platform 36 / build-tools 36.0.0, JDK 17 |
 | `flutter analyze` | **No issues found** |
-| `flutter test` | **47/47 passing** (22 call-flow + 20 audio DSP/watchdog + 5 echo-guard) |
+| `flutter test` | **53/53 passing** (22 call-flow + 20 audio DSP/watchdog + 5 echo-guard + 6 noise/click) |
 | Artifact | `esp32_voip-v1.2.0-arm64-release.apk` — 21.6 MB, ABI **arm64-v8a**, minSdk 24, targetSdk 36 |
-| Version | 1.2.0+3 — silent-microphone fallback, software DSP, speaker gain, audio check |
+| Version | 1.3.0+4 — speech-band filtering, adaptive noise floor, click-free playback, loudspeaker UX |
 | Signing | release keystore (`CN=Local VoIP Demo`), APK Signature Scheme v2 (verified with `apksigner`) |
 
 Build it yourself:
@@ -263,11 +263,40 @@ so v1.2.0 adds the software half — `AudioProcessor`, pure Dart, ~0.1 % of a co
 | Stage | Effect | Why it matters |
 | --- | --- | --- |
 | High-pass @ 110 Hz | removes DC offset, handling thump, mains hum | a loudspeaker reproduces rumble badly; cutting it makes speech clearer |
+| **Speech-band low-pass @ 3.6 kHz** (v1.3.0) | two cascaded one-poles, ≈ 12 dB/octave | everything above the telephone band is hiss: preamp noise, fan whine, Wi-Fi electronics, aliasing. Cutting it is the biggest single "clearer voice" win |
+| **Adaptive noise floor** (v1.3.0) | the gate threshold follows the room (fast-fall / slow-rise envelope) instead of a fixed −52 dBFS | the same settings work in a quiet bedroom and next to a fan; a noisy room no longer leaks through the gate |
 | Downward expander (soft gate) | −22 dB below −52 dBFS, fully open above −34 dBFS | removes the constant hiss **between** words — the line sounds quiet instead of noisy |
 | AGC (fast up, slow down) | aims for ≈ −20 dBFS RMS | a quiet talker and a loud talker arrive at the same level |
 | Soft-knee limiter @ −1 dBFS | tanh bend above 0.89 | **never clips** — clipping is what makes a loud loudspeaker sound harsh |
 | Speaker gain ×2.2 | applied only while the loudspeaker is on | the call is audible across a room *and* still limited |
 | **Echo guard (software half-duplex)** | while the loudspeaker is on, the microphone is ducked to **−18 dB** whenever the far end is actually talking (never muted) | kills the howl/echo loop on devices whose hardware AEC is missing or weak — e.g. a dev board, or a phone with a cheap loudspeaker. Closes in ~20 ms, opens in ~120 ms, so the local talker is not chopped |
+
+### Click-free playback (v1.3.0)
+
+"Unwanted sound" during a call is usually not the codec — it is three playback
+defects that each produce a short, sharp noise:
+
+| Defect | What it sounded like | Fix |
+| --- | --- | --- |
+| Capture and playback shared one high-pass filter's memory | clicks and a thin, phasy voice whenever the two paths interleaved | each path now owns its filter state |
+| Jitter-buffer starvation restarted the stream mid-waveform | a "pop" every time Wi-Fi hiccupped | the buffer reports the interruption and playback fades in over ~6 ms |
+| A truncated or corrupt frame landed as an instant full-scale step | a loud crack, worst on the loudspeaker | a de-clicker caps the sample-to-sample step at 0.37 FS |
+
+All three are unit-tested (`test/features/voice_call/audio_processor_test.dart`,
+group *click suppression*) without needing a phone.
+
+### Loudspeaker: who hears the call (v1.3.0)
+
+The speaker control now states the trade-off instead of hiding behind an icon:
+
+| Where | Control | Meaning |
+| --- | --- | --- |
+| Incoming-call screen | **Accept** / **Speaker** | accept on the earpiece (only you) or straight onto the loudspeaker (everyone nearby) |
+| Active-call screen | **Loudspeaker** tile with a switch | "Everyone nearby can hear the call" ↔ "Only you can hear the call" |
+| Active-call screen | round speaker button | same toggle, for muscle memory |
+
+Turning the loudspeaker on also raises the playback gain (×2.2) and engages the
+echo guard; turning it off restores earpiece routing and full microphone gain.
 
 ### Routing and volume
 

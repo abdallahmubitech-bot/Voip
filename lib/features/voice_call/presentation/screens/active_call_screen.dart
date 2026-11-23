@@ -54,6 +54,15 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> {
                 const SizedBox(height: 20),
                 if (active != null)
                   _ConnectionQuality(stats: active.stats, isMuted: active.isMuted),
+                if (active != null) ...<Widget>[
+                  const SizedBox(height: 20),
+                  _SpeakerModeTile(
+                    isLoudspeaker: active.isLoudspeaker,
+                    onChanged: (value) => context.read<CallBloc>().add(
+                          CallLoudspeakerToggled(enabled: value),
+                        ),
+                  ),
+                ],
                 const Spacer(),
                 if (active != null)
                   Row(
@@ -338,6 +347,75 @@ class _Chip extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The loudspeaker control, spelled out.
+///
+/// The icon row alone was too easy to miss: this tile says in words who can
+/// hear the call, which is the whole point of the feature.
+class _SpeakerModeTile extends StatelessWidget {
+  const _SpeakerModeTile({
+    required this.isLoudspeaker,
+    required this.onChanged,
+  });
+
+  final bool isLoudspeaker;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      key: const Key('speaker-mode-tile'),
+      color: isLoudspeaker
+          ? theme.colorScheme.primary.withValues(alpha: 0.12)
+          : theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => onChanged(!isLoudspeaker),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                isLoudspeaker ? Icons.volume_up : Icons.phone_in_talk,
+                color: isLoudspeaker
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      isLoudspeaker ? 'Loudspeaker on' : 'Earpiece',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      isLoudspeaker
+                          ? 'Everyone nearby can hear the call'
+                          : 'Only you can hear the call',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                key: const Key('speaker-mode-switch'),
+                value: isLoudspeaker,
+                onChanged: onChanged,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

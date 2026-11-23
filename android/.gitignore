@@ -1,8 +1,7 @@
-gradle-wrapper.jar
+# The Gradle wrapper is committed on purpose: a fresh clone must build
+# without needing a local Gradle installation.
 /.gradle
 /captures/
-/gradlew
-/gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/

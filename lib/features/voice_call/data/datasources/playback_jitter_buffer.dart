@@ -12,6 +12,7 @@ import '../../../../core/utils/constants.dart';
 class PlaybackJitterBuffer {
   PlaybackJitterBuffer({
     required this.onFrame,
+    this.onInterruption,
     this.frameDuration = const Duration(
       milliseconds: AudioConstants.frameDurationMs,
     ),
@@ -20,6 +21,11 @@ class PlaybackJitterBuffer {
   });
 
   final void Function(Uint8List pcm) onFrame;
+
+  /// Called whenever the stream is cut — the buffer ran dry (Wi-Fi hiccup) or a
+  /// frame had to be thrown away because the queue overflowed. Playback uses it
+  /// to fade back in, so a restart is a soft edge instead of a pop.
+  final void Function()? onInterruption;
   final Duration frameDuration;
   final int prefill;
   final int maxFrames;
@@ -47,6 +53,7 @@ class PlaybackJitterBuffer {
     while (_queue.length >= maxFrames) {
       _queue.removeFirst();
       _underruns++;
+      onInterruption?.call();
     }
     _queue.add(pcm);
     if (!_primed && _queue.length >= prefill) {
@@ -62,6 +69,7 @@ class PlaybackJitterBuffer {
       // Starved: stop feeding silence and wait for the buffer to re-prime.
       _primed = false;
       _underruns++;
+      onInterruption?.call();
       return;
     }
     onFrame(_queue.removeFirst());

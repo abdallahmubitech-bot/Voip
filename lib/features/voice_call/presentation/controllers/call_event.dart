@@ -44,10 +44,14 @@ final class CallSignalReceived extends CallEvent {
 
 /// Operator pressed "Accept" on the incoming-call screen.
 final class CallAnswered extends CallEvent {
-  const CallAnswered();
+  const CallAnswered({this.speakerphone = false});
+
+  /// Answer straight onto the loudspeaker, so a room full of people can hear
+  /// from the first second.
+  final bool speakerphone;
 
   @override
-  List<Object?> get props => const <Object?>[];
+  List<Object?> get props => <Object?>[speakerphone];
 }
 
 /// Operator pressed "Decline".

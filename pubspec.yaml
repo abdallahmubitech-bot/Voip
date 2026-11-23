@@ -3,7 +3,7 @@ description: >-
   Full-duplex VoIP calling over a local Wi-Fi network, signalled with JSON text
   frames and streamed as raw PCM binary frames through an ESP32 WebSocket router.
 publish_to: "none"
-version: 1.2.0+3
+version: 1.3.0+4
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

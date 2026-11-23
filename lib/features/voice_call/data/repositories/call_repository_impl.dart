@@ -186,7 +186,11 @@ class CallRepositoryImpl implements CallRepository {
       await _route.setLoudspeaker(enabled: false);
 
       _chunker = PcmChunker();
-      _jitter = PlaybackJitterBuffer(onFrame: _audio.feedPlayback)..start();
+      _jitter = PlaybackJitterBuffer(
+        onFrame: _audio.feedPlayback,
+        // Starved or dropped frames: fade back in instead of clicking.
+        onInterruption: _audio.notePlaybackGap,
+      )..start();
 
       // The earpiece is quieter than media playback by design, so the pipeline
       // starts with plain unity gain and only lifts it when the operator asks
