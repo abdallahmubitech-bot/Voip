@@ -1,0 +1,43 @@
+name: esp32_voip
+description: >-
+  Full-duplex VoIP calling over a local Wi-Fi network, signalled with JSON text
+  frames and streamed as raw PCM binary frames through an ESP32 WebSocket router.
+publish_to: "none"
+version: 1.2.0+3
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+
+  # Transport
+  web_socket_channel: ^3.0.1
+
+  # Audio plane (raw PCM capture + low latency playback)
+  flutter_sound: ^9.2.13
+
+  # Ring tones / ringback (independent of the call audio engine)
+  audioplayers: ^6.1.0
+
+  # Microphone permission
+  permission_handler: ^11.3.1
+
+  # Dependency injection
+  get_it: ^7.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/audio/
